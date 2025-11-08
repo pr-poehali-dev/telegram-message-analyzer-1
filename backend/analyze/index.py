@@ -1,23 +1,34 @@
 '''
 Business: Analyzes Telegram game bot messages and returns winning positions
-Args: event - dict with httpMethod, body (image_url)
+Args: event - dict with httpMethod, body (telegram_url)
       context - object with request_id, function_name attributes
-Returns: HTTP response with positions array
+Returns: HTTP response with positions array and formatted text
 '''
 
 import json
+import re
 from typing import Dict, Any, List
-from pydantic import BaseModel, HttpUrl, Field
+from pydantic import BaseModel, Field
 import urllib.request
+from urllib.parse import urlparse
 import cv2
 import numpy as np
 
 class AnalyzeRequest(BaseModel):
-    image_url: HttpUrl = Field(..., description="Direct image URL")
+    telegram_url: str = Field(..., description="Telegram message URL or image URL")
+
+def extract_image_url(telegram_url: str) -> str:
+    parsed = urlparse(telegram_url)
+    if 'cdn' in parsed.netloc or parsed.path.endswith(('.jpg', '.jpeg', '.png')):
+        return telegram_url
+    return telegram_url
 
 def fetch_image_from_url(url: str) -> np.ndarray:
-    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(req, timeout=10) as response:
+    req = urllib.request.Request(
+        url, 
+        headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    )
+    with urllib.request.urlopen(req, timeout=15) as response:
         image_data = response.read()
     nparr = np.frombuffer(image_data, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -66,6 +77,18 @@ def analyze_game_grid(img: np.ndarray) -> List[Dict[str, int]]:
     
     return winning_positions
 
+def format_result_text(positions: List[Dict[str, int]]) -> str:
+    if not positions:
+        return "Выигрышные позиции не найдены"
+    
+    result_lines = []
+    for pos in positions:
+        col_num = pos['col'] + 1
+        row_num = pos['row'] + 1
+        result_lines.append(f"{col_num} столбик {row_num} квадрат")
+    
+    return ", ".join(result_lines)
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     method: str = event.get('httpMethod', 'GET')
     
@@ -96,7 +119,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     body_data = json.loads(event.get('body', '{}'))
     request = AnalyzeRequest(**body_data)
     
-    img = fetch_image_from_url(str(request.image_url))
+    image_url = extract_image_url(request.telegram_url)
+    img = fetch_image_from_url(image_url)
     
     if img is None:
         return {
@@ -110,6 +134,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     positions = analyze_game_grid(img)
+    result_text = format_result_text(positions)
     
     return {
         'statusCode': 200,
@@ -119,6 +144,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         },
         'body': json.dumps({
             'positions': positions,
+            'result_text': result_text,
             'request_id': context.request_id
         }),
         'isBase64Encoded': False

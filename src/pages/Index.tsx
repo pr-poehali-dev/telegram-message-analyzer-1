@@ -9,14 +9,14 @@ interface Position {
 }
 
 export default function Index() {
-  const [imageUrl, setImageUrl] = useState('');
+  const [telegramUrl, setTelegramUrl] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [winningPositions, setWinningPositions] = useState<Position[]>([]);
   const [resultText, setResultText] = useState('');
 
   const analyzeMessage = async () => {
-    if (!imageUrl.trim()) {
-      toast.error('Введите URL изображения');
+    if (!telegramUrl.trim()) {
+      toast.error('Введите ссылку');
       return;
     }
 
@@ -31,7 +31,7 @@ export default function Index() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          image_url: imageUrl
+          telegram_url: telegramUrl
         })
       });
 
@@ -41,15 +41,11 @@ export default function Index() {
 
       const data = await response.json();
       const positions: Position[] = data.positions;
+      const result = data.result_text || 'Позиции не найдены';
       
       setWinningPositions(positions);
-      
-      const result = positions.map(p => 
-        `Столбец ${p.col + 1}, строка ${p.row + 1}`
-      ).join(' • ');
-      
-      setResultText(result || 'Позиции не найдены');
-      toast.success('Анализ завершён');
+      setResultText(result);
+      toast.success('Готово');
       
     } catch (error) {
       toast.error('Ошибка при анализе');
@@ -78,14 +74,14 @@ export default function Index() {
         <div className="space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
-              URL изображения
+              Ссылка на сообщение или изображение
             </label>
             <div className="flex gap-2">
               <Input
                 type="text"
                 placeholder="https://..."
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
+                value={telegramUrl}
+                onChange={(e) => setTelegramUrl(e.target.value)}
                 className="h-10 border-border"
                 disabled={isAnalyzing}
               />
@@ -145,7 +141,7 @@ export default function Index() {
         </div>
 
         <div className="text-xs text-muted-foreground text-center">
-          Вставьте прямую ссылку на изображение с игровым полем
+          Вставьте ссылку на Telegram сообщение или прямую ссылку на изображение
         </div>
       </div>
     </div>
