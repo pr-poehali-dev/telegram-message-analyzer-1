@@ -1,0 +1,23 @@
+{
+  "tests": [
+    {
+      "name": "Analyze valid telegram URL",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "telegram_url": "https://t.me/qalais_bot/12345"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "request_id": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Handle OPTIONS for CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    }
+  ]
+}
