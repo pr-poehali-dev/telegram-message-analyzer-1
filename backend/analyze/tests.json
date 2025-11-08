@@ -1,11 +1,11 @@
 {
   "tests": [
     {
-      "name": "Analyze valid telegram URL",
+      "name": "Analyze image URL",
       "method": "POST",
       "path": "/",
       "body": {
-        "telegram_url": "https://t.me/qalais_bot/12345"
+        "image_url": "https://cdn.poehali.dev/files/740b85a0-6320-4e9f-aef0-be97fd0769a1.jpg"
       },
       "expectedStatus": 200,
       "expectedBody": {
